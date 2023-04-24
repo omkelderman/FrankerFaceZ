@@ -1,21 +1,22 @@
 <template>
 	<section class="tw-flex-grow-1 tw-align-self-start">
 		<div class="tw-flex tw-align-items-center">
-			<label :for="'label$' + id">
+			<header>
 				{{ t(type.i18n, type.title) }}
-			</label>
+			</header>
 
-			<select
-				:id="'label$' + id"
-				v-model="selected"
-				class="tw-flex-grow-1 tw-mg-l-1 tw-border-radius-medium tw-font-size-6 tw-pd-x-1 tw-pd-y-05 ffz-select"
-			>
-				<template v-for="(mon, idx) in monitors">
-					<option :value="mon">
-						{{ idx + 1 }}. {{ mon.label }} ({{ mon.width }}&times;{{ mon.height }})
-					</option>
+			<div :style="{ position: 'relative', width: `${settings_preview_width/10}px`, height: `${settings_preview_height/10}px`, margin: '10px' }">
+				<template v-for="mon in monitors">
+					<label :style="{ border: 'solid 1px var(--color-text-base)', width: `${mon.width/10}px`, height: `${mon.height/10}px`, top: `${(mon.top-settings_preview_offset_top)/10}px`, left: `${(mon.left-settings_preview_offset_left)/10}px`, position: 'absolute', textAlign: 'center' }">
+						<input v-model="selected" :value="mon" type="radio" style="min-width: auto;">
+						<br>
+						{{ mon.label }}
+						<br>
+						({{ mon.width }}&times;{{ mon.height }})
+					</label>
 				</template>
-			</select>
+			</div>
+
 		</div>
 		<div class="tw-c-text-alt-2">
 			{{ t('setting.filter.monitor.about', 'This setting requires that this site has the Window Management permission. Please be sure that it is allowed.') }}
@@ -38,7 +39,11 @@ export default {
 			has_monitors: true,
 			monitors: [],
 			ready: false,
-			selected: null
+			selected: null,
+			settings_preview_offset_left: 0,
+			settings_preview_offset_top: 0,
+			settings_preview_width: 0,
+			settings_preview_height: 0,
 		}
 	},
 
@@ -75,7 +80,11 @@ export default {
 			}
 
 			this.monitors = [];
-			for(const mon of data.screens)
+			let leftMost = Infinity;
+			let rightMost = -Infinity;
+			let topMost = Infinity;
+			let bottomMost = -Infinity;
+			for(const mon of data.screens) {
 				this.monitors.push({
 					top: mon.top,
 					left: mon.left,
@@ -83,6 +92,16 @@ export default {
 					width: mon.width,
 					height: mon.height
 				});
+				leftMost = Math.min(leftMost, mon.left);
+				rightMost = Math.max(rightMost, mon.left + mon.width);
+				topMost = Math.min(topMost, mon.top);
+				bottomMost = Math.max(bottomMost, mon.top + mon.height);
+			}
+
+			this.settings_preview_offset_left = leftMost;
+			this.settings_preview_offset_top = topMost;
+			this.settings_preview_width = rightMost - leftMost;
+			this.settings_preview_height = bottomMost - topMost;
 
 			sortScreens(this.monitors);
 			if ( this.value.data )
